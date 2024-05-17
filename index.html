@@ -7,7 +7,7 @@
 <style>
     body {
         font-family: Arial, sans-serif;
-        background-color: #f4f4f4;
+        background-color: #520909;
         color: #333;
     }
     .container {
@@ -63,11 +63,13 @@
 <body>
 <div class="container">
     <h2>Random Value Calculator</h2>
-    <label for="names">Names (separated by commas) or upload a .txt file:</label>
+    <label for="names">Names (separated by commas):</label>
     <br>
     <textarea id="names" rows="4" placeholder="Enter names separated by commas"></textarea>
     <br>
-    <p>Or </p><input type="file" id="fileInput" accept=".txt">
+    <label for="names">Or upload a .txt file:</label>
+    <br>
+    <input type="file" id="fileInput" accept=".txt">
     <br>
     <div class="MinMax">
         <label for="minValue">Min Value:</label>
