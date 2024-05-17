@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Random Value Calculator</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        color: #333;
+    }
+    .container {
+        max-width: 600px;
+        margin: 50px auto;
+        padding: 20px;
+        background-color: #fff;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    input[type="file"], input[type="text"], input[type="number"], textarea {
+        width: calc(50% - 5px);
+        margin-bottom: 10px;
+        padding: 8px;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+        box-sizing: border-box;
+    }
+    button {
+        padding: 8px 15px;
+        border-radius: 5px;
+        border: none;
+        background-color: #007bff;
+        color: #fff;
+        cursor: pointer;
+    }
+    button:hover {
+        background-color: #0056b3;
+    }
+    ul {
+        padding: 0;
+        list-style-type: none;
+    }
+    li {
+        margin-bottom: 5px;
+    }
+    .MinMax {
+        display: flex;
+        justify-content: space-around;
+    }
+    .barInput {
+        display: flex;
+        justify-content: space-around;
+    }
+    .results-container {
+        margin-top: 20px;
+        padding: 10px;
+        border-top: 1px solid #ccc;
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <h2>Random Value Calculator</h2>
+    <label for="names">Names (separated by commas) or upload a .txt file:</label>
+    <br>
+    <textarea id="names" rows="4" placeholder="Enter names separated by commas"></textarea>
+    <br>
+    <p>Or </p><input type="file" id="fileInput" accept=".txt">
+    <br>
+    <div class="MinMax">
+        <label for="minValue">Min Value:</label>
+        <label for="maxValue">Max Value:</label>
+    </div>
+    <br>
+    <div class="barInput">
+        <input type="number" id="minValue" placeholder="Min Value">
+        <input type="number" id="maxValue" placeholder="Max Value">
+    </div>
+    <br>
+    <button onclick="calculateAndDisplayResults()">Submit</button>
+    <div id="results-container" class="results-container" style="display:none;">
+        <h3>Results</h3>
+        <ul id="results"></ul>
+        <button onclick="downloadResults('txt')">Download as .txt</button>
+        <button onclick="downloadResults('docx')">Download as .docx</button>
+        <button onclick="downloadResults('xlsx')">Download as .xlsx</button>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html-docx-js/0.5.0/html-docx.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+<script>
+function calculateAndDisplayResults() {
+    const namesInput = document.getElementById('names');
+    const fileInput = document.getElementById('fileInput');
+    const minValueInput = document.getElementById('minValue');
+    const maxValueInput = document.getElementById('maxValue');
+    const resultsContainer = document.getElementById('results-container');
+    const resultsList = document.getElementById('results');
+
+    // Clear previous results
+    resultsList.innerHTML = '';
+
+    let namesArray = [];
+    if (fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const content = e.target.result;
+            namesArray = content.split(/[\n,]+/).map(item => item.trim());
+            generateResults(namesArray);
+        };
+        reader.readAsText(file);
+    } else {
+        namesArray = namesInput.value.split(',').map(name => name.trim());
+        generateResults(namesArray);
+    }
+
+    function generateResults(namesArray) {
+        // Get min and max values
+        const minValue = parseInt(minValueInput.value);
+        const maxValue = parseInt(maxValueInput.value);
+
+        // Generate random values for each name
+        namesArray.forEach(name => {
+            const randomValue = Math.floor(Math.random() * (maxValue - minValue + 1)) + minValue;
+            const li = document.createElement('li');
+            li.textContent = `${name}: ${randomValue}`;
+            resultsList.appendChild(li);
+        });
+
+        // Display results container
+        resultsContainer.style.display = 'block';
+    }
+}
+
+function downloadResults(fileType) {
+    const resultsList = document.getElementById('results');
+    let resultText = '';
+    let resultArray = [];
+    resultsList.querySelectorAll('li').forEach(li => {
+        const [name, value] = li.textContent.split(': ');
+        resultText += `${li.textContent}\n`;
+        resultArray.push({ name, value });
+    });
+
+    if (fileType === 'txt') {
+        downloadTxtFile(resultText);
+    } else if (fileType === 'docx') {
+        downloadDocxFile(resultText);
+    } else if (fileType === 'xlsx') {
+        downloadXlsxFile(resultArray);
+    }
+}
+
+function downloadTxtFile(text) {
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    saveAs(blob, 'random_values.txt');
+}
+
+function downloadDocxFile(text) {
+    const content = `
+        <!DOCTYPE html>
+        <html>
+        <head><meta charset="UTF-8"></head>
+        <body>${text.replace(/\n/g, '<br>')}</body>
+        </html>
+    `;
+    const blob = htmlDocx.asBlob(content);
+    saveAs(blob, 'random_values.docx');
+}
+
+function downloadXlsxFile(data) {
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Results");
+    XLSX.writeFile(wb, "random_values.xlsx");
+}
+</script>
+</body>
+</html>
