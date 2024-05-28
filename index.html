@@ -7,7 +7,7 @@
 <style>
     body {
         font-family: Arial, sans-serif;
-        background-color: #520909;
+        background-color: #f70d0d;
         color: #333;
     }
     .container {
@@ -67,9 +67,9 @@
     <br>
     <textarea id="names" rows="4" placeholder="Enter names separated by commas"></textarea>
     <br>
-    <label for="names">Or upload a .txt file:</label>
+    <label for="fileInput">Or upload a .txt or .xlsx file:</label>
     <br>
-    <input type="file" id="fileInput" accept=".txt">
+    <input type="file" id="fileInput" accept=".txt,.xlsx">
     <br>
     <div class="MinMax">
         <label for="minValue">Min Value:</label>
@@ -86,14 +86,13 @@
         <h3>Results</h3>
         <ul id="results"></ul>
         <button onclick="downloadResults('txt')">Download as .txt</button>
-        <button onclick="downloadResults('docx')">Download as .docx</button>
         <button onclick="downloadResults('xlsx')">Download as .xlsx</button>
     </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html-docx-js/0.5.0/html-docx.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html-docx-js/0.5.2/html-docx.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
 <script>
 function calculateAndDisplayResults() {
@@ -111,12 +110,25 @@ function calculateAndDisplayResults() {
     if (fileInput.files.length > 0) {
         const file = fileInput.files[0];
         const reader = new FileReader();
-        reader.onload = function(e) {
-            const content = e.target.result;
-            namesArray = content.split(/[\n,]+/).map(item => item.trim());
-            generateResults(namesArray);
-        };
-        reader.readAsText(file);
+        if (file.name.endsWith('.txt')) {
+            reader.onload = function(e) {
+                const content = e.target.result;
+                namesArray = content.split(/[\n,]+/).map(item => item.trim());
+                generateResults(namesArray);
+            };
+            reader.readAsText(file);
+        } else if (file.name.endsWith('.xlsx')) {
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const sheet = workbook.Sheets[sheetName];
+                const sheetData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                namesArray = sheetData.flat().map(item => item.toString().trim());
+                generateResults(namesArray);
+            };
+            reader.readAsArrayBuffer(file);
+        }
     } else {
         namesArray = namesInput.value.split(',').map(name => name.trim());
         generateResults(namesArray);
@@ -152,8 +164,6 @@ function downloadResults(fileType) {
 
     if (fileType === 'txt') {
         downloadTxtFile(resultText);
-    } else if (fileType === 'docx') {
-        downloadDocxFile(resultText);
     } else if (fileType === 'xlsx') {
         downloadXlsxFile(resultArray);
     }
@@ -161,26 +171,15 @@ function downloadResults(fileType) {
 
 function downloadTxtFile(text) {
     const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-    saveAs(blob, 'random_values.txt');
+    saveAs(blob, 'Rnd.txt');
 }
 
-function downloadDocxFile(text) {
-    const content = `
-        <!DOCTYPE html>
-        <html>
-        <head><meta charset="UTF-8"></head>
-        <body>${text.replace(/\n/g, '<br>')}</body>
-        </html>
-    `;
-    const blob = htmlDocx.asBlob(content);
-    saveAs(blob, 'random_values.docx');
-}
 
 function downloadXlsxFile(data) {
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Results");
-    XLSX.writeFile(wb, "random_values.xlsx");
+    XLSX.writeFile(wb, "Rnd.xlsx");
 }
 </script>
 </body>
